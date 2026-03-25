@@ -17,7 +17,7 @@ const LANG_KEYWORDS = {
   typescript: ['typescript', ' tsx ', 'tsconfig', 'type-safe', 'ts-node'],
   javascript: ['javascript', ' jsx ', 'node.js', 'npm install', 'deno', 'bun '],
   rust: ['rust', 'cargo', 'crate', 'tokio', 'actix'],
-  go: ['golang', ' go ', 'goroutine', 'gomod'],
+  go: ['golang', 'goroutine', 'gomod', 'go module', 'go build'],
   java: ['java', 'jvm', 'spring', 'maven', 'gradle', 'junit'],
   ruby: ['ruby', 'rails', 'gem', 'rspec', 'bundler'],
   'c++': ['c++', 'cpp', 'cmake', 'clang', 'gcc'],
@@ -52,6 +52,14 @@ const FRAMEWORK_KEYWORDS = {
   docker: ['docker', 'dockerfile', 'compose'],
 };
 
+const NICHE_KEYWORDS = [
+  'genomics', 'molecular', 'quantum', 'spectral', 'protein', 'metabol',
+  'phylogenet', 'biosignal', 'crystallograph', 'astro', 'pathology',
+  'docking', 'cheminformat', 'bioinformat', 'single-cell', 'sequencing',
+];
+
+const UNIVERSAL_DOMAINS = ['git', 'planning', 'refactoring', 'documentation'];
+
 function inferTags(text) {
   const lower = ` ${(text || '').toLowerCase()} `;
   const tags = new Set();
@@ -77,11 +85,20 @@ function inferTags(text) {
     if (keywords.some(kw => wordMatch(kw))) frameworks.add(fw);
   }
 
+  // Tier classification
+  const isNiche = NICHE_KEYWORDS.some(kw => lower.includes(kw));
+  const hasLang = languages.size > 0;
+  const onlyUniversalDomains = domains.size > 0 && [...domains].every(d => UNIVERSAL_DOMAINS.includes(d));
+  let tier = 'core';
+  if (isNiche) tier = 'niche';
+  else if (!hasLang && (onlyUniversalDomains || domains.size === 0)) tier = 'universal';
+
   return {
     tags: [...languages, ...domains, ...frameworks],
     languages: [...languages],
     frameworks: [...frameworks],
     domains: [...domains],
+    tier,
   };
 }
 
@@ -371,7 +388,7 @@ function buildIndex(skills, agents, plugins, gsd, hooks, mcp) {
 }
 
 // Exports for testing
-module.exports = { inferTags, parseFrontmatter, summarize, buildIndex };
+module.exports = { inferTags, parseFrontmatter, summarize, buildIndex, NICHE_KEYWORDS, UNIVERSAL_DOMAINS };
 
 // Main
 if (require.main === module) {

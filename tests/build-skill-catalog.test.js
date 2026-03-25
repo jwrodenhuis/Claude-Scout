@@ -66,6 +66,38 @@ describe('build-skill-catalog', () => {
     });
   });
 
+  describe('inferTags — tier classification', () => {
+    test('classifies scientific skill as niche', () => {
+      const result = inferTags('Genomics analysis for molecular biology and spectral data');
+      expect(result.tier).toBe('niche');
+    });
+
+    test('classifies Python skill with language as core', () => {
+      const result = inferTags('Python Django REST framework patterns');
+      expect(result.tier).toBe('core');
+    });
+
+    test('classifies tool without language keywords as universal', () => {
+      const result = inferTags('Git workflow and pull request automation');
+      expect(result.tier).toBe('universal');
+    });
+
+    test('classifies planning tool as universal', () => {
+      const result = inferTags('Roadmap planning and milestone tracking');
+      expect(result.tier).toBe('universal');
+    });
+
+    test('does not false-positive on "go" in normal text', () => {
+      const result = inferTags('Ready to go with algorithm design');
+      expect(result.languages).not.toContain('go');
+    });
+
+    test('detects "golang" correctly', () => {
+      const result = inferTags('Golang goroutine patterns and concurrency');
+      expect(result.languages).toContain('go');
+    });
+  });
+
   describe('parseFrontmatter', () => {
     test('parses valid frontmatter', () => {
       const content = '---\nname: test-skill\ndescription: "A test skill"\n---\n# Content';
