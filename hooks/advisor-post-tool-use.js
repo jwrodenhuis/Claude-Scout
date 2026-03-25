@@ -7,6 +7,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { getStrings } = require(path.join(__dirname, '..', 'scripts', 'i18n'));
 
 const CLAUDE_DIR = path.join(require('os').homedir(), '.claude');
 const INDEX_PATH = path.join(CLAUDE_DIR, 'skills', '.index.json');
@@ -18,8 +19,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/\.test\.[jt]sx?$/, /\.spec\.[jt]sx?$/, /__tests__/, /test_.*\.py$/, /_test\.go$/],
     contentPatterns: [/describe\s*\(/, /it\s*\(/, /test\s*\(/, /expect\s*\(/, /assert/, /pytest/, /func Test/],
     suggestions: [
-      { name: '/ecc:tdd-workflow', type: 'skill', summary: 'TDD workflow: schrijf tests eerst, dan implementatie. Dekt test structuur, mocking en assertions met 80%+ coverage.' },
-      { name: 'quality-engineer', type: 'agent', summary: 'Agent voor uitgebreide teststrategie, edge cases en systematische kwaliteitsborging.' },
+      { name: '/ecc:tdd-workflow', type: 'skill', summary: 'TDD workflow: write tests first, then implement. Covers test structure, mocking, and assertions with 80%+ coverage.' },
+      { name: 'quality-engineer', type: 'agent', summary: 'Agent for comprehensive test strategy, edge cases, and systematic quality assurance.' },
     ],
   },
   {
@@ -27,8 +28,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/\/api\//, /\/routes\//, /handler/, /controller/, /endpoint/],
     contentPatterns: [/app\.(get|post|put|delete|patch)\s*\(/, /router\.(get|post|put|delete)/, /@(Get|Post|Put|Delete)/, /FastAPI/, /APIRouter/],
     suggestions: [
-      { name: '/ecc:api-design', type: 'skill', summary: 'REST API design patterns: resource naming, status codes, pagination, filtering, error responses en versioning.' },
-      { name: 'backend-architect', type: 'agent', summary: 'Agent voor betrouwbare backend systemen met focus op data-integriteit, security en fout-tolerantie.' },
+      { name: '/ecc:api-design', type: 'skill', summary: 'REST API design patterns: resource naming, status codes, pagination, filtering, error responses, and versioning.' },
+      { name: 'backend-architect', type: 'agent', summary: 'Agent for reliable backend systems with focus on data integrity, security, and fault tolerance.' },
     ],
   },
   {
@@ -36,8 +37,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/\.sql$/, /migration/, /schema/, /drizzle/, /prisma/],
     contentPatterns: [/SELECT\s+/i, /INSERT\s+INTO/i, /CREATE\s+TABLE/i, /ALTER\s+TABLE/i, /db\.(query|execute|select)/, /\.findMany\(/, /\.createMany\(/],
     suggestions: [
-      { name: '/ecc:postgres-patterns', type: 'skill', summary: 'PostgreSQL query optimalisatie, schema design, indexering en security. Gebaseerd op Supabase best practices.' },
-      { name: 'database-reviewer', type: 'agent', summary: 'Agent voor query optimalisatie, schema review, security en performance analyse van database code.' },
+      { name: '/ecc:postgres-patterns', type: 'skill', summary: 'PostgreSQL query optimization, schema design, indexing, and security. Based on Supabase best practices.' },
+      { name: 'database-reviewer', type: 'agent', summary: 'Agent for query optimization, schema review, security, and performance analysis of database code.' },
     ],
   },
   {
@@ -45,8 +46,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/auth/, /login/, /middleware/, /session/, /token/],
     contentPatterns: [/password/, /encrypt/, /hash/, /jwt/, /bearer/, /secret/, /api[_-]?key/, /OAuth/, /csrf/, /sanitize/],
     suggestions: [
-      { name: '/ecc:security-review', type: 'skill', summary: 'Scant code op OWASP Top 10 kwetsbaarheden, auth flaws, input validatie en secret exposure.' },
-      { name: 'security-reviewer', type: 'agent', summary: 'Agent voor security vulnerability detectie en remediatie. Flags secrets, SSRF, injection en unsafe crypto.' },
+      { name: '/ecc:security-review', type: 'skill', summary: 'Scans code for OWASP Top 10 vulnerabilities, auth flaws, input validation issues, and secret exposure.' },
+      { name: 'security-reviewer', type: 'agent', summary: 'Agent for security vulnerability detection and remediation. Flags secrets, SSRF, injection, and unsafe crypto.' },
     ],
   },
   {
@@ -54,8 +55,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/\.tsx$/, /components\//, /pages\//, /app\/.*\/page\./],
     contentPatterns: [/useState/, /useEffect/, /useCallback/, /useMemo/, /<div/, /className=/, /tailwind/, /styled/],
     suggestions: [
-      { name: '/ecc:frontend-patterns', type: 'skill', summary: 'React/Next.js patterns: state management, performance optimalisatie, component design en UI best practices.' },
-      { name: 'frontend-architect', type: 'agent', summary: 'Agent voor toegankelijke, performante user interfaces met focus op UX en moderne frameworks.' },
+      { name: '/ecc:frontend-patterns', type: 'skill', summary: 'React/Next.js patterns: state management, performance optimization, component design, and UI best practices.' },
+      { name: 'frontend-architect', type: 'agent', summary: 'Agent for accessible, performant user interfaces with focus on UX and modern frameworks.' },
     ],
   },
   {
@@ -63,8 +64,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/Dockerfile/, /docker-compose/, /\.dockerignore/],
     contentPatterns: [/FROM\s+\w/, /WORKDIR/, /EXPOSE\s+\d/, /docker\s+(build|run|compose)/],
     suggestions: [
-      { name: '/ecc:docker-patterns', type: 'skill', summary: 'Docker en Docker Compose patterns voor local development, container security, networking en multi-service orchestratie.' },
-      { name: 'devops-architect', type: 'agent', summary: 'Agent voor infrastructure automation en deployment met focus op betrouwbaarheid en observability.' },
+      { name: '/ecc:docker-patterns', type: 'skill', summary: 'Docker and Docker Compose patterns for local development, container security, networking, and multi-service orchestration.' },
+      { name: 'devops-architect', type: 'agent', summary: 'Agent for infrastructure automation and deployment with focus on reliability and observability.' },
     ],
   },
   {
@@ -73,7 +74,7 @@ const ACTION_PATTERNS = [
     contentPatterns: [/error TS\d+/, /SyntaxError/, /TypeError/, /ReferenceError/, /ModuleNotFoundError/, /compilation failed/, /FAIL\s/, /Build failed/i],
     outputOnly: true,
     suggestions: [
-      { name: 'build-error-resolver', type: 'agent', summary: 'Agent voor build en TypeScript error resolutie. Fixt build/type errors met minimale diffs.' },
+      { name: 'build-error-resolver', type: 'agent', summary: 'Agent for build and TypeScript error resolution. Fixes build/type errors with minimal diffs.' },
     ],
   },
   {
@@ -82,7 +83,7 @@ const ACTION_PATTERNS = [
     contentPatterns: [/git\s+(merge|rebase|cherry-pick|bisect)/, /conflict/, /CONFLICT.*Merge/],
     outputOnly: true,
     suggestions: [
-      { name: '/ecc:git', type: 'skill', summary: 'Git operaties met intelligente commit messages en workflow optimalisatie.' },
+      { name: '/ecc:git', type: 'skill', summary: 'Git operations with intelligent commit messages and workflow optimization.' },
     ],
   },
   {
@@ -90,8 +91,8 @@ const ACTION_PATTERNS = [
     filePatterns: [/\.ipynb$/, /\.py$/],
     contentPatterns: [/import pandas/, /import numpy/, /import sklearn/, /import torch/, /import tensorflow/, /\.fit\(/, /\.predict\(/],
     suggestions: [
-      { name: '/exploratory-data-analysis', type: 'skill', summary: 'Uitgebreide exploratieve data analyse op wetenschappelijke data in 200+ bestandsformaten.' },
-      { name: '/statistical-analysis', type: 'skill', summary: 'Begeleide statistische analyse met test selectie, aanname-verificatie en rapportage.' },
+      { name: '/exploratory-data-analysis', type: 'skill', summary: 'Comprehensive exploratory data analysis on scientific data in 200+ file formats.' },
+      { name: '/statistical-analysis', type: 'skill', summary: 'Guided statistical analysis with test selection, assumption verification, and reporting.' },
     ],
   },
 ];
@@ -190,14 +191,15 @@ function analyzeAction(input) {
 }
 
 function formatSuggestion(match, filePath) {
+  const s = getStrings();
   const suggestion = match.suggestions[0];
   const reason = getReasonText(match.id, filePath);
 
   const lines = [
-    `Skill tip: ${suggestion.name}`,
-    `  Wat: ${suggestion.summary}`,
-    `  Waarom nu: ${reason}`,
-    `  Gebruik: Roep ${suggestion.name.startsWith('/') ? suggestion.name : 'agent ' + suggestion.name} aan${match.suggestions.length > 1 ? ` (ook beschikbaar: ${match.suggestions.slice(1).map(s => s.name).join(', ')})` : ''}.`,
+    `${s.skillTip} ${suggestion.name}`,
+    `  ${s.what} ${suggestion.summary}`,
+    `  ${s.whyNow} ${reason}`,
+    `  ${s.useText(suggestion.name)}${match.suggestions.length > 1 ? ` (${s.alsoAvailable} ${match.suggestions.slice(1).map(s => s.name).join(', ')})` : ''}.`,
   ];
   return lines.join('\n');
 }
@@ -206,35 +208,37 @@ function formatMultiSuggestion(matches, filePath) {
   if (matches.length === 0) return null;
   if (matches.length === 1) return formatSuggestion(matches[0], filePath);
 
+  const s = getStrings();
   const parts = matches.map(m => {
-    const s = m.suggestions[0];
-    return `${s.name} (${getReasonText(m.id, filePath).replace(/\.$/, '')})`;
+    const sug = m.suggestions[0];
+    return `${sug.name} (${getReasonText(m.id, filePath).replace(/\.$/, '')})`;
   });
   const lines = [
-    `Skill tips:`,
-    `  Gecombineerd advies: ${parts.join(' en ')}`,
+    `${s.skillTips}`,
+    `  ${s.combinedAdvice} ${parts.join(` ${s.and} `)}`,
   ];
   for (const m of matches) {
-    const s = m.suggestions[0];
-    lines.push(`  → ${s.name} — ${s.summary}`);
+    const sug = m.suggestions[0];
+    lines.push(`  → ${sug.name} — ${sug.summary}`);
   }
   return lines.join('\n');
 }
 
 function getReasonText(patternId, filePath) {
+  const s = getStrings();
   const file = path.basename(filePath || '');
   const reasons = {
-    testing: `Je werkt aan test bestanden${file ? ` (${file})` : ''}.`,
-    api: `Je bewerkt API/route bestanden${file ? ` (${file})` : ''}.`,
-    database: `Je werkt met database code${file ? ` (${file})` : ''}.`,
-    security: `Je bewerkt security-gerelateerde code${file ? ` (${file})` : ''} met auth/token/password handling.`,
-    frontend: `Je werkt aan frontend componenten${file ? ` (${file})` : ''}.`,
-    docker: `Je bewerkt Docker configuratie${file ? ` (${file})` : ''}.`,
-    'build-error': 'Er zijn build errors gedetecteerd in de output.',
-    'git-workflow': 'Er is een complexe git operatie gaande.',
-    'data-science': `Je werkt met data science code${file ? ` (${file})` : ''}.`,
+    testing: s.reasonTesting(file),
+    api: s.reasonApi(file),
+    database: s.reasonDatabase(file),
+    security: s.reasonSecurity(file),
+    frontend: s.reasonFrontend(file),
+    docker: s.reasonDocker(file),
+    'build-error': s.reasonBuildError(),
+    'git-workflow': s.reasonGitWorkflow(),
+    'data-science': s.reasonDataScience(file),
   };
-  return reasons[patternId] || 'Relevante patronen gedetecteerd in je huidige werk.';
+  return reasons[patternId] || s.reasonDefault();
 }
 
 // Exports for testing

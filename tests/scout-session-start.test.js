@@ -1,3 +1,6 @@
+// Force English strings in tests regardless of system locale
+process.env.SCOUT_LANG = 'en';
+
 const { scoreSkill, formatBriefing } = require('../hooks/scout-session-start');
 
 describe('scout-session-start', () => {
@@ -96,8 +99,8 @@ describe('scout-session-start', () => {
         { name: 'agent1', source: 'agent', invoke: 'agent:agent1', summary: 'An agent' },
       ];
       const result = formatBriefing(project, recs, null);
-      expect(result).toContain('Aanbevolen skills:');
-      expect(result).toContain('Aanbevolen agents:');
+      expect(result).toContain('Recommended skills:');
+      expect(result).toContain('Recommended agents:');
       expect(result).toContain('/skill1');
       expect(result).toContain('agent1');
     });
@@ -113,7 +116,81 @@ describe('scout-session-start', () => {
       const project = { language: 'typescript', framework: null, projectName: 'test' };
       const profile = { lastSession: '2026-03-20T10:00:00Z' };
       const result = formatBriefing(project, [], profile);
-      expect(result).toContain('Bestaand profiel gevonden');
+      expect(result).toContain('Existing profile found');
+    });
+  });
+
+  describe('applyRecommendations', () => {
+    const { applyRecommendations, buildScoutSection, getUsageTrigger } = require('../hooks/scout-session-start');
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+
+    const makeProject = () => ({ language: 'javascript', framework: null, projectName: 'test' });
+    const makeRecs = () => [
+      { name: 'tdd-workflow', source: 'plugin:1.8.0', invoke: '/tdd-workflow', description: 'TDD workflow skill', summary: 'TDD' },
+      { name: 'code-reviewer', source: 'agent', invoke: 'agent:code-reviewer', description: 'Code reviewer agent', summary: 'Reviews code' },
+    ];
+
+    test('creates CLAUDE.md with scout section when file does not exist', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-apply-'));
+      applyRecommendations(tmpDir, makeRecs(), makeProject());
+      const content = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf8');
+      expect(content).toContain('<!-- scout:start -->');
+      expect(content).toContain('<!-- scout:end -->');
+      expect(content).toContain('Scout Recommendations');
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('appends scout section to existing CLAUDE.md', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-apply-'));
+      fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), '# Mijn Project\n\nBestaande content.\n');
+      applyRecommendations(tmpDir, makeRecs(), makeProject());
+      const content = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf8');
+      expect(content).toContain('Mijn Project');
+      expect(content).toContain('Bestaande content.');
+      expect(content).toContain('<!-- scout:start -->');
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('replaces existing scout section without duplicating', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-apply-'));
+      fs.writeFileSync(path.join(tmpDir, 'CLAUDE.md'), '# Project\n\n## Scout Recommendations\n<!-- scout:start -->\nold advice\n<!-- scout:end -->\n');
+      applyRecommendations(tmpDir, makeRecs(), makeProject());
+      const content = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf8');
+      expect(content).not.toContain('old advice');
+      expect((content.match(/scout:start/g) || []).length).toBe(1);
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('includes skills with trigger context', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-apply-'));
+      applyRecommendations(tmpDir, makeRecs(), makeProject());
+      const content = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf8');
+      expect(content).toContain('/tdd-workflow');
+      expect(content).toContain('new features');
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('includes agents with trigger context', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-apply-'));
+      applyRecommendations(tmpDir, makeRecs(), makeProject());
+      const content = fs.readFileSync(path.join(tmpDir, 'CLAUDE.md'), 'utf8');
+      expect(content).toContain('code-reviewer');
+      expect(content).toContain('significant code changes');
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('getUsageTrigger returns correct triggers', () => {
+      expect(getUsageTrigger('tdd-workflow', 'TDD skill')).toContain('features');
+      expect(getUsageTrigger('security-review', 'Security scan')).toContain('auth');
+      expect(getUsageTrigger('code-reviewer', 'Review code')).toContain('significant code changes');
+      expect(getUsageTrigger('unknown-tool', 'Some tool')).toBe('use when relevant');
+    });
+
+    test('handles write error gracefully without throwing', () => {
+      // Read-only path should not throw
+      expect(() => applyRecommendations('/nonexistent/readonly', makeRecs(), makeProject())).not.toThrow();
     });
   });
 

@@ -1,5 +1,7 @@
-const { analyzeAction, formatSuggestion, getReasonText, ACTION_PATTERNS } = require('../hooks/advisor-post-tool-use');
+// Force English strings in tests regardless of system locale
+process.env.SCOUT_LANG = 'en';
 
+const { analyzeAction, formatSuggestion, getReasonText, ACTION_PATTERNS } = require('../hooks/advisor-post-tool-use');
 const { formatMultiSuggestion } = require('../hooks/advisor-post-tool-use');
 
 describe('advisor-post-tool-use', () => {
@@ -126,19 +128,19 @@ describe('advisor-post-tool-use', () => {
   });
 
   describe('formatSuggestion', () => {
-    test('includes What, Waarom nu, Gebruik sections', () => {
+    test('includes What, Why now, Use sections', () => {
       const match = ACTION_PATTERNS.find(p => p.id === 'testing');
       const result = formatSuggestion(match, '/src/utils/foo.test.ts');
       expect(result).toContain('Skill tip:');
-      expect(result).toContain('Wat:');
-      expect(result).toContain('Waarom nu:');
-      expect(result).toContain('Gebruik:');
+      expect(result).toContain('What:');
+      expect(result).toContain('Why now:');
+      expect(result).toContain('Use:');
     });
 
     test('mentions alternative tools when available', () => {
       const match = ACTION_PATTERNS.find(p => p.id === 'testing');
       const result = formatSuggestion(match, '/test.ts');
-      expect(result).toContain('ook beschikbaar:');
+      expect(result).toContain('also available:');
     });
   });
 
@@ -154,7 +156,7 @@ describe('advisor-post-tool-use', () => {
       const security = { ...ACTION_PATTERNS.find(p => p.id === 'security'), confidence: 4 };
       const result = formatMultiSuggestion([api, security], '/src/api/auth.ts');
       expect(result).toContain('Skill tips:');
-      expect(result).toContain('Gecombineerd advies:');
+      expect(result).toContain('Combined advice:');
     });
 
     test('returns null for empty matches', () => {
@@ -170,12 +172,12 @@ describe('advisor-post-tool-use', () => {
 
     test('works without filename', () => {
       const reason = getReasonText('testing', '');
-      expect(reason).toContain('test bestanden');
+      expect(reason).toContain('test files');
     });
 
     test('returns default for unknown pattern', () => {
       const reason = getReasonText('unknown', '/file.txt');
-      expect(reason).toContain('Relevante patronen');
+      expect(reason).toContain('Relevant patterns');
     });
   });
 });
