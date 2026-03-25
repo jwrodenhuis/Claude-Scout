@@ -12,6 +12,9 @@ const REQUIRED_FILES = [
   'scripts/build-skill-catalog.js',
   'scripts/project-detector.js',
   'scripts/manage-hooks.js',
+  'scripts/global-scout.js',
+  'scripts/online-search.js',
+  'scripts/i18n.js',
   'hooks/scout-session-start.js',
   'hooks/advisor-post-tool-use.js',
   'skills/session-scout/SKILL.md',
@@ -19,6 +22,7 @@ const REQUIRED_FILES = [
   'skills/scout:eval/SKILL.md',
   'skills/scout:bootstrap/SKILL.md',
   'skills/scout:help/SKILL.md',
+  'skills/scout:global/SKILL.md',
 ];
 
 function checkFiles() {
