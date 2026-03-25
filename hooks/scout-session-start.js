@@ -15,6 +15,7 @@ const CLAUDE_DIR = path.join(require('os').homedir(), '.claude');
 const INDEX_PATH = path.join(CLAUDE_DIR, 'skills', '.index.json');
 const CATALOG_BUILDER = path.join(CLAUDE_DIR, 'scripts', 'build-skill-catalog.js');
 const DETECTOR = path.join(CLAUDE_DIR, 'scripts', 'project-detector.js');
+const GLOBAL_PROFILE_PATH = path.join(CLAUDE_DIR, 'scout-global-profile.json');
 
 function readStdin() {
   try {
@@ -84,6 +85,26 @@ function loadProfile(cwd) {
   } catch (e) {
     return null;
   }
+}
+
+function loadGlobalProfile() {
+  try {
+    return JSON.parse(fs.readFileSync(GLOBAL_PROFILE_PATH, 'utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Remove tools that are already covered by the global profile.
+ * Returns only the project-specific delta.
+ */
+function filterGlobalTools(recommendations) {
+  const globalProfile = loadGlobalProfile();
+  if (!globalProfile || !globalProfile.tools) return recommendations;
+
+  const globalNames = new Set(globalProfile.tools.flatMap(t => [t.name, t.invoke].filter(Boolean)));
+  return recommendations.filter(r => !globalNames.has(r.name) && !globalNames.has(r.invoke));
 }
 
 function scoreSkill(entry, project, profile) {
@@ -339,7 +360,7 @@ function saveProfile(cwd, project, recommendations) {
 }
 
 // Exports for testing
-module.exports = { scoreSkill, formatBriefing, needsRebuild, loadProfile, saveProfile, applyRecommendations, buildScoutSection, getUsageTrigger };
+module.exports = { scoreSkill, formatBriefing, needsRebuild, loadProfile, saveProfile, applyRecommendations, buildScoutSection, getUsageTrigger, loadGlobalProfile, filterGlobalTools };
 
 // Main
 if (require.main === module) {
@@ -380,11 +401,14 @@ if (require.main === module) {
     process.exit(0);
   }
 
-  // Save profile
+  // Save profile (full scored list, before delta filtering)
   saveProfile(cwd, project, scored);
 
+  // Filter out tools already covered by global profile (write only delta)
+  const delta = filterGlobalTools(scored);
+
   // Apply recommendations to CLAUDE.md
-  applyRecommendations(cwd, scored, project);
+  applyRecommendations(cwd, delta, project);
 
   // Load cached online results (from previous background fetch, if any)
   let onlineResults = [];
@@ -401,8 +425,8 @@ if (require.main === module) {
     } catch (e) { /* background fetch failed, ignore */ }
   }
 
-  // Emit briefing
-  const briefing = formatBriefing(project, scored, profile, onlineResults);
+  // Emit briefing (use delta so global tools are not re-listed)
+  const briefing = formatBriefing(project, delta, profile, onlineResults);
   console.log(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'SessionStart',
