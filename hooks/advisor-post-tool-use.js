@@ -206,7 +206,11 @@ function getReasonText(patternId, filePath) {
   return reasons[patternId] || 'Relevante patronen gedetecteerd in je huidige werk.';
 }
 
+// Exports for testing
+module.exports = { analyzeAction, formatSuggestion, getReasonText, ACTION_PATTERNS };
+
 // Main
+if (require.main === module) {
 const input = readStdin();
 const sessionId = input?.session_id || 'default';
 const cwd = input?.cwd || input?.workspace?.current_dir || process.cwd();
@@ -226,7 +230,7 @@ if (state.actions.length > 200) state.actions = state.actions.slice(-200);
 // Debounce: max 1 suggestion per 2 minutes
 if (now - (state.lastSuggestion || 0) < 2 * 60 * 1000) {
   saveState(sessionId, state);
-  console.log(JSON.stringify({ hookSpecificOutput: {} }));
+  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
 
@@ -234,7 +238,7 @@ if (now - (state.lastSuggestion || 0) < 2 * 60 * 1000) {
 const match = analyzeAction(input);
 if (!match) {
   saveState(sessionId, state);
-  console.log(JSON.stringify({ hookSpecificOutput: {} }));
+  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
 
@@ -242,7 +246,7 @@ if (!match) {
 const lastSuggested = state.suggestedSkills?.[match.id] || 0;
 if (now - lastSuggested < 10 * 60 * 1000) {
   saveState(sessionId, state);
-  console.log(JSON.stringify({ hookSpecificOutput: {} }));
+  console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
 
@@ -257,6 +261,8 @@ saveState(sessionId, state);
 
 console.log(JSON.stringify({
   hookSpecificOutput: {
+    hookEventName: 'PostToolUse',
     additionalContext: `<action-advisor>\n${suggestion}\n</action-advisor>`,
   },
 }));
+}
