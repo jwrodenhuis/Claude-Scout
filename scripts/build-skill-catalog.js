@@ -370,15 +370,20 @@ function buildIndex(skills, agents, plugins, gsd, hooks, mcp) {
   };
 }
 
-// Main
-const skills = scanSkills();
-const agents = scanAgents();
-const plugins = scanPluginSkills();
-const gsd = scanGSDWorkflows();
-const hooks = scanHooks();
-const mcp = scanMCPServers();
-const index = buildIndex(skills, agents, plugins, gsd, hooks, mcp);
+// Exports for testing
+module.exports = { inferTags, parseFrontmatter, summarize, buildIndex };
 
-fs.writeFileSync(INDEX_PATH, JSON.stringify(index, null, 2));
-console.log(`Catalog built: ${index.totalCount} entries (${skills.length} skills, ${agents.length} agents, ${plugins.length} plugin skills, ${gsd.length} GSD, ${hooks.length} hooks, ${mcp.length} MCP/plugins)`);
-console.log(`Written to: ${INDEX_PATH}`);
+// Main
+if (require.main === module) {
+  const skills = scanSkills();
+  const agents = scanAgents();
+  const plugins = scanPluginSkills();
+  const gsd = scanGSDWorkflows();
+  const hooks = scanHooks();
+  const mcp = scanMCPServers();
+  const index = buildIndex(skills, agents, plugins, gsd, hooks, mcp);
+
+  fs.writeFileSync(INDEX_PATH, JSON.stringify(index, null, 2));
+  console.log(`Catalog built: ${index.totalCount} entries (${skills.length} skills, ${agents.length} agents, ${plugins.length} plugin skills, ${gsd.length} GSD, ${hooks.length} hooks, ${mcp.length} MCP/plugins)`);
+  console.log(`Written to: ${INDEX_PATH}`);
+}

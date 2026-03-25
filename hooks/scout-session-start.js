@@ -195,51 +195,57 @@ function saveProfile(cwd, project, recommendations) {
   } catch (e) { /* can't write to project dir, skip */ }
 }
 
+// Exports for testing
+module.exports = { scoreSkill, formatBriefing, needsRebuild, loadProfile, saveProfile };
+
 // Main
-const input = readStdin();
-const cwd = input?.cwd || input?.workspace?.current_dir || process.cwd();
+if (require.main === module) {
+  const input = readStdin();
+  const cwd = input?.cwd || input?.workspace?.current_dir || process.cwd();
 
-// Auto-rebuild if needed
-if (needsRebuild()) rebuildCatalog();
+  // Auto-rebuild if needed
+  if (needsRebuild()) rebuildCatalog();
 
-const index = loadIndex();
-if (!index) {
-  // No catalog, emit nothing
-  console.log(JSON.stringify({ hookSpecificOutput: {} }));
-  process.exit(0);
+  const index = loadIndex();
+  if (!index) {
+    // No catalog, emit nothing
+    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart' } }));
+    process.exit(0);
+  }
+
+  // Detect project
+  let project;
+  try {
+    const { detect } = require(DETECTOR);
+    project = detect(cwd);
+  } catch (e) {
+    project = { language: null, languages: [], frameworks: [], projectName: path.basename(cwd) };
+  }
+
+  // Load existing profile
+  const profile = loadProfile(cwd);
+
+  // Score and rank
+  const scored = index.skills
+    .map(entry => ({ ...entry, score: scoreSkill(entry, project, profile) }))
+    .filter(e => e.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  if (scored.length === 0) {
+    console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart' } }));
+    process.exit(0);
+  }
+
+  // Save profile
+  saveProfile(cwd, project, scored);
+
+  // Emit briefing
+  const briefing = formatBriefing(project, scored, profile);
+  console.log(JSON.stringify({
+    hookSpecificOutput: {
+      hookEventName: 'SessionStart',
+      additionalContext: `<session-scout>\n${briefing}\n</session-scout>`,
+    },
+  }));
 }
-
-// Detect project
-let project;
-try {
-  const { detect } = require(DETECTOR);
-  project = detect(cwd);
-} catch (e) {
-  project = { language: null, languages: [], frameworks: [], projectName: path.basename(cwd) };
-}
-
-// Load existing profile
-const profile = loadProfile(cwd);
-
-// Score and rank
-const scored = index.skills
-  .map(entry => ({ ...entry, score: scoreSkill(entry, project, profile) }))
-  .filter(e => e.score > 0)
-  .sort((a, b) => b.score - a.score)
-  .slice(0, 10);
-
-if (scored.length === 0) {
-  console.log(JSON.stringify({ hookSpecificOutput: {} }));
-  process.exit(0);
-}
-
-// Save profile
-saveProfile(cwd, project, scored);
-
-// Emit briefing
-const briefing = formatBriefing(project, scored, profile);
-console.log(JSON.stringify({
-  hookSpecificOutput: {
-    additionalContext: `<session-scout>\n${briefing}\n</session-scout>`,
-  },
-}));

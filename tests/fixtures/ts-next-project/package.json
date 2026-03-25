@@ -1,0 +1,5 @@
+{
+  "name": "test-ts-next",
+  "dependencies": { "next": "^14.0.0", "react": "^18.0.0", "drizzle-orm": "^0.30.0" },
+  "devDependencies": { "typescript": "^5.0.0", "vitest": "^1.0.0" }
+}

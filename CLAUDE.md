@@ -1,0 +1,36 @@
+# Claude Scout
+
+Intelligent toolkit advisor for Claude Code. Recommends skills, agents, hooks, and MCP servers based on project context.
+
+## Project Structure
+
+```
+scripts/
+  build-skill-catalog.js  — Indexes all skills/agents/plugins/hooks/MCP servers into .index.json
+  project-detector.js     — Detects project language, framework, deps from config files
+  manage-hooks.js         — Installs/uninstalls Scout hooks in settings.json
+hooks/
+  scout-session-start.js  — SessionStart hook: scores tools against project, emits briefing
+  advisor-post-tool-use.js — PostToolUse hook: suggests tools based on current action patterns
+skills/session-scout/
+  SKILL.md                — /scout skill definition (scan, eval, bootstrap, help)
+  GUIDE.md                — User guide
+tests/                    — Vitest tests for all modules
+tests/fixtures/           — Minimal project configs for testing
+```
+
+## Development
+
+```bash
+npm install          # Install dev dependencies (vitest only)
+npm test             # Run all tests
+npx vitest --watch   # Watch mode
+```
+
+## Conventions
+
+- **CommonJS** — All files use `require()` / `module.exports`
+- **No runtime dependencies** — Only Node.js built-ins (fs, path, child_process, os)
+- **Hook output** — Always valid JSON on stdout with `hookEventName` field. Errors to stderr.
+- **Exports** — All modules export testable functions + use `require.main === module` guard for CLI
+- **Tests** — Use fixtures in `tests/fixtures/` for project detection tests
