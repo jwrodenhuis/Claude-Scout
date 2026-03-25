@@ -10,20 +10,13 @@ const path = require('path');
 const CLAUDE_DIR = path.join(require('os').homedir(), '.claude');
 const DEFAULT_SETTINGS_PATH = path.join(CLAUDE_DIR, 'settings.json');
 
+// Note: PostToolUse advisor hook removed — advisor runs on-demand via /scout:eval
 const SCOUT_HOOKS = {
   SessionStart: {
     hooks: [{
       type: 'command',
       command: `node "${path.join(CLAUDE_DIR, 'hooks', 'scout-session-start.js')}"`,
       timeout: 3,
-    }],
-  },
-  PostToolUse: {
-    matcher: 'Edit|Write|Bash',
-    hooks: [{
-      type: 'command',
-      command: `node "${path.join(CLAUDE_DIR, 'hooks', 'advisor-post-tool-use.js')}"`,
-      timeout: 1,
     }],
   },
 };

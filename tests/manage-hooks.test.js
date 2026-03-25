@@ -23,7 +23,6 @@ describe('manage-hooks', () => {
       expect(fs.existsSync(settingsPath)).toBe(true);
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
       expect(settings.hooks.SessionStart).toBeDefined();
-      expect(settings.hooks.PostToolUse).toBeDefined();
     });
 
     test('adds hooks to existing settings without overwriting', () => {
@@ -37,7 +36,6 @@ describe('manage-hooks', () => {
       expect(settings.env.FOO).toBe('bar');
       expect(settings.hooks.PreToolUse).toHaveLength(1);
       expect(settings.hooks.SessionStart).toBeDefined();
-      expect(settings.hooks.PostToolUse).toBeDefined();
     });
 
     test('is idempotent — does not duplicate hooks', () => {
@@ -62,7 +60,6 @@ describe('manage-hooks', () => {
       expect(result.success).toBe(true);
       const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
       expect(settings.hooks.SessionStart).toHaveLength(1);
-      expect(settings.hooks.PostToolUse).toBeDefined();
     });
 
     test('returns error for corrupt JSON', () => {
@@ -104,9 +101,9 @@ describe('manage-hooks', () => {
   });
 
   describe('SCOUT_HOOKS constant', () => {
-    test('defines SessionStart and PostToolUse hooks', () => {
+    test('defines SessionStart hook only (advisor is on-demand)', () => {
       expect(SCOUT_HOOKS.SessionStart).toBeDefined();
-      expect(SCOUT_HOOKS.PostToolUse).toBeDefined();
+      expect(SCOUT_HOOKS.PostToolUse).toBeUndefined();
     });
   });
 });
