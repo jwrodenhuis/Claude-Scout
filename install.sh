@@ -54,6 +54,9 @@ echo "Installing Claude Scout..."
 mkdir -p "$CLAUDE_DIR/scripts"
 mkdir -p "$CLAUDE_DIR/hooks"
 mkdir -p "$CLAUDE_DIR/skills/session-scout"
+mkdir -p "$CLAUDE_DIR/skills/scout:eval"
+mkdir -p "$CLAUDE_DIR/skills/scout:bootstrap"
+mkdir -p "$CLAUDE_DIR/skills/scout:help"
 
 # Copy files
 cp "$SCRIPT_DIR/scripts/build-skill-catalog.js" "$CLAUDE_DIR/scripts/"
@@ -63,6 +66,9 @@ cp "$SCRIPT_DIR/hooks/scout-session-start.js" "$CLAUDE_DIR/hooks/"
 cp "$SCRIPT_DIR/hooks/advisor-post-tool-use.js" "$CLAUDE_DIR/hooks/"
 cp "$SCRIPT_DIR/skills/session-scout/SKILL.md" "$CLAUDE_DIR/skills/session-scout/"
 cp "$SCRIPT_DIR/skills/session-scout/GUIDE.md" "$CLAUDE_DIR/skills/session-scout/"
+cp "$SCRIPT_DIR/skills/scout:eval/SKILL.md" "$CLAUDE_DIR/skills/scout:eval/"
+cp "$SCRIPT_DIR/skills/scout:bootstrap/SKILL.md" "$CLAUDE_DIR/skills/scout:bootstrap/"
+cp "$SCRIPT_DIR/skills/scout:help/SKILL.md" "$CLAUDE_DIR/skills/scout:help/"
 
 echo "Files copied to $CLAUDE_DIR"
 
