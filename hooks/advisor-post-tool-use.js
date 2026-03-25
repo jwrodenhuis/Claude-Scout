@@ -172,9 +172,12 @@ function analyzeAction(input) {
     }
   }
 
-  // Return highest confidence match
+  // Return top 2 matches if both have sufficient confidence
   matches.sort((a, b) => b.confidence - a.confidence);
-  return matches[0] || null;
+  if (matches.length >= 2 && matches[1].confidence >= 3) {
+    return matches.slice(0, 2);
+  }
+  return matches.length > 0 ? [matches[0]] : [];
 }
 
 function formatSuggestion(match, filePath) {
@@ -187,6 +190,25 @@ function formatSuggestion(match, filePath) {
     `  Waarom nu: ${reason}`,
     `  Gebruik: Roep ${suggestion.name.startsWith('/') ? suggestion.name : 'agent ' + suggestion.name} aan${match.suggestions.length > 1 ? ` (ook beschikbaar: ${match.suggestions.slice(1).map(s => s.name).join(', ')})` : ''}.`,
   ];
+  return lines.join('\n');
+}
+
+function formatMultiSuggestion(matches, filePath) {
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return formatSuggestion(matches[0], filePath);
+
+  const parts = matches.map(m => {
+    const s = m.suggestions[0];
+    return `${s.name} (${getReasonText(m.id, filePath).replace(/\.$/, '')})`;
+  });
+  const lines = [
+    `Skill tips:`,
+    `  Gecombineerd advies: ${parts.join(' en ')}`,
+  ];
+  for (const m of matches) {
+    const s = m.suggestions[0];
+    lines.push(`  → ${s.name} — ${s.summary}`);
+  }
   return lines.join('\n');
 }
 
@@ -207,7 +229,7 @@ function getReasonText(patternId, filePath) {
 }
 
 // Exports for testing
-module.exports = { analyzeAction, formatSuggestion, getReasonText, ACTION_PATTERNS };
+module.exports = { analyzeAction, formatSuggestion, formatMultiSuggestion, getReasonText, ACTION_PATTERNS };
 
 // Main
 if (require.main === module) {
@@ -227,6 +249,11 @@ state.actions.push({
 // Cap action log at 200 entries
 if (state.actions.length > 200) state.actions = state.actions.slice(-200);
 
+// Track Skill tool invocations for eval
+if (input.tool_name === 'Skill' && input.tool_input?.skill) {
+  trackUsage(cwd, input.tool_input.skill);
+}
+
 // Debounce: max 1 suggestion per 2 minutes
 if (now - (state.lastSuggestion || 0) < 2 * 60 * 1000) {
   saveState(sessionId, state);
@@ -235,16 +262,19 @@ if (now - (state.lastSuggestion || 0) < 2 * 60 * 1000) {
 }
 
 // Analyze action
-const match = analyzeAction(input);
-if (!match) {
+const matches = analyzeAction(input);
+if (matches.length === 0) {
   saveState(sessionId, state);
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
 
-// No repeat within 10 minutes
-const lastSuggested = state.suggestedSkills?.[match.id] || 0;
-if (now - lastSuggested < 10 * 60 * 1000) {
+// No repeat within 10 minutes (check each match individually)
+const validMatches = matches.filter(m => {
+  const lastSuggested = state.suggestedSkills?.[m.id] || 0;
+  return now - lastSuggested >= 10 * 60 * 1000;
+});
+if (validMatches.length === 0) {
   saveState(sessionId, state);
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
@@ -252,11 +282,13 @@ if (now - lastSuggested < 10 * 60 * 1000) {
 
 // Emit suggestion
 const filePath = input.tool_input?.file_path || input.tool_input?.command || '';
-const suggestion = formatSuggestion(match, filePath);
+const suggestion = formatMultiSuggestion(validMatches, filePath);
 
 state.lastSuggestion = now;
 state.suggestedSkills = state.suggestedSkills || {};
-state.suggestedSkills[match.id] = now;
+for (const m of validMatches) {
+  state.suggestedSkills[m.id] = now;
+}
 saveState(sessionId, state);
 
 console.log(JSON.stringify({
