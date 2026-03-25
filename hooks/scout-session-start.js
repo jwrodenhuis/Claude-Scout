@@ -72,7 +72,13 @@ function loadIndex() {
 function loadProfile(cwd) {
   const profilePath = path.join(cwd, '.claude', 'scout-profile.json');
   try {
-    return JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+    const data = JSON.parse(fs.readFileSync(profilePath, 'utf8'));
+    // Validate required keys
+    if (!data.projectType || !data.recommendedTools || !data.usedTools) {
+      process.stderr.write(`Warning: invalid scout-profile.json at ${profilePath}, ignoring\n`);
+      return null;
+    }
+    return data;
   } catch (e) {
     return null;
   }

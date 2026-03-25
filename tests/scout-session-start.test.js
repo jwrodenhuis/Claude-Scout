@@ -116,4 +116,36 @@ describe('scout-session-start', () => {
       expect(result).toContain('Bestaand profiel gevonden');
     });
   });
+
+  describe('loadProfile — error handling', () => {
+    const { loadProfile } = require('../hooks/scout-session-start');
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+
+    test('returns null for missing profile', () => {
+      const result = loadProfile('/nonexistent/path');
+      expect(result).toBeNull();
+    });
+
+    test('returns null for corrupt profile JSON', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-test-'));
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+      fs.writeFileSync(path.join(claudeDir, 'scout-profile.json'), 'not json {{{');
+      const result = loadProfile(tmpDir);
+      expect(result).toBeNull();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    test('returns null for profile missing required keys', () => {
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'scout-test-'));
+      const claudeDir = path.join(tmpDir, '.claude');
+      fs.mkdirSync(claudeDir, { recursive: true });
+      fs.writeFileSync(path.join(claudeDir, 'scout-profile.json'), '{"random": true}');
+      const result = loadProfile(tmpDir);
+      expect(result).toBeNull();
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+  });
 });

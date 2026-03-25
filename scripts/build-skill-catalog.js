@@ -148,7 +148,7 @@ function scanSkills() {
         invoke: `/${fm.name || dir}`,
         ...tagInfo,
       });
-    } catch (e) { /* skip unreadable */ }
+    } catch (e) { process.stderr.write(`Warning: cannot read skill ${dir}: ${e.message}\n`); }
   }
   return entries;
 }
@@ -172,7 +172,7 @@ function scanAgents() {
         invoke: `agent:${name}`,
         ...tagInfo,
       });
-    } catch (e) { /* skip */ }
+    } catch (e) { process.stderr.write(`Warning: cannot read agent ${file}: ${e.message}\n`); }
   }
   return entries;
 }
@@ -207,7 +207,7 @@ function scanPluginSkills() {
                     invoke: `/${fm.name || skillDir}`,
                     ...tagInfo,
                   });
-                } catch (e) { /* skip */ }
+                } catch (e) { process.stderr.write(`Warning: cannot read plugin skill ${skillDir}: ${e.message}\n`); }
               }
             }
           } else {
@@ -240,7 +240,7 @@ function scanGSDWorkflows() {
         invoke: `/gsd:${name}`,
         ...tagInfo,
       });
-    } catch (e) { /* skip */ }
+    } catch (e) { process.stderr.write(`Warning: cannot read GSD workflow ${file}: ${e.message}\n`); }
   }
   return entries;
 }
