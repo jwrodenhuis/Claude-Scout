@@ -7,6 +7,7 @@ describe('scout-session-start', () => {
       frameworks: ['next', 'react'],
       testRunner: 'vitest',
       database: 'postgresql',
+      dependencies: ['next', 'react', 'drizzle-orm', 'typescript', 'vitest'],
       hasDocker: false,
       hasCICD: true,
       ...overrides,
@@ -57,6 +58,33 @@ describe('scout-session-start', () => {
       const profile2 = { usedTools: [{ name: 'test-tool', count: 5 }] };
       const scoreFive = scoreSkill(entry, makeProject(), profile2);
       expect(scoreMax).toBe(scoreFive);
+    });
+
+    test('returns 0 for niche skill without language match', () => {
+      const entry = { languages: ['python'], frameworks: [], domains: [], source: 'skill', tier: 'niche' };
+      const project = makeProject(); // typescript project
+      const score = scoreSkill(entry, project, null);
+      expect(score).toBe(0);
+    });
+
+    test('scores niche skill when language AND domain match', () => {
+      const entry = { languages: ['typescript'], frameworks: [], domains: ['testing'], source: 'skill', tier: 'niche' };
+      const score = scoreSkill(entry, makeProject(), null);
+      expect(score).toBeGreaterThan(0);
+    });
+
+    test('scores dependency match', () => {
+      const entry = { languages: ['typescript'], frameworks: [], domains: [], source: 'skill', tier: 'core', name: 'drizzle-patterns', description: 'Drizzle ORM patterns' };
+      const project = makeProject({ dependencies: ['drizzle-orm', 'next', 'react'] });
+      const scoreWithDep = scoreSkill(entry, project, null);
+      const scoreWithout = scoreSkill(entry, makeProject({ dependencies: [] }), null);
+      expect(scoreWithDep).toBeGreaterThan(scoreWithout);
+    });
+
+    test('universal tier scores without language match', () => {
+      const entry = { languages: [], frameworks: [], domains: ['git'], source: 'skill', tier: 'universal' };
+      const score = scoreSkill(entry, makeProject(), null);
+      expect(score).toBeGreaterThan(0);
     });
   });
 

@@ -92,22 +92,52 @@ function scoreSkill(entry, project, profile) {
     if (project.frameworks.includes(fw)) { score += 15; hasLangOrFwMatch = true; }
   }
 
-  // Domain relevance (only boost if there's already a lang/fw match, or it's a universal tool)
-  const isUniversal = entry.source === 'agent' || entry.source === 'gsd' || entry.source === 'hook' || entry.source === 'mcp' || entry.source === 'plugin';
+  // Tier-based filtering
+  const tier = entry.tier || 'core';
+  const isUniversal = tier === 'universal' || entry.source === 'agent' || entry.source === 'gsd' || entry.source === 'hook' || entry.source === 'mcp' || entry.source === 'plugin';
+
+  // Niche skills require language match + domain match
+  if (tier === 'niche') {
+    if (!hasLangOrFwMatch) return 0;
+    const hasDomainMatch = (entry.domains || []).some(d =>
+      (d === 'testing' && project.testRunner) ||
+      (d === 'database' && project.database) ||
+      (d === 'devops' && (project.hasDocker || project.hasCICD))
+    );
+    if (!hasDomainMatch) return 0; // niche always needs domain relevance
+  }
+
+  // Domain relevance (only boost if there's a lang/fw match or universal)
   if (hasLangOrFwMatch || isUniversal) {
     if (entry.domains?.includes('testing') && project.testRunner) score += 8;
     if (entry.domains?.includes('database') && project.database) score += 8;
     if (entry.domains?.includes('devops') && (project.hasDocker || project.hasCICD)) score += 5;
     if (entry.domains?.includes('security')) score += 3;
+    // Universal domain boost (git, planning, etc.)
+    if (isUniversal && (entry.domains || []).length > 0) score += 5;
   }
 
-  // Penalize skills with no lang/fw match (likely irrelevant scientific/niche skills)
-  if (!hasLangOrFwMatch && !isUniversal && entry.languages?.length > 0) {
-    score = 0; // wrong language entirely
+  // Dependency matching
+  if (project.dependencies && project.dependencies.length > 0) {
+    const entryText = `${entry.name || ''} ${entry.description || ''}`.toLowerCase();
+    for (const dep of project.dependencies) {
+      const escaped = dep.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      // Match exact or with hyphens/spaces interchangeable
+      const pattern = escaped.replace(/-/g, '(\\s+|-)');
+      if (dep.length >= 3 && new RegExp(`\\b${pattern}\\b`).test(entryText)) {
+        score += 8;
+        break; // max one dep match
+      }
+    }
   }
 
-  // Require minimum score threshold for plain skills (filter out noise from 200+ scientific skills)
-  if (entry.source === 'skill' && !hasLangOrFwMatch && score < 8) {
+  // Penalize skills with no lang/fw match (wrong language entirely)
+  if (!hasLangOrFwMatch && !isUniversal && (entry.languages || []).length > 0) {
+    score = 0;
+  }
+
+  // Core skills without lang match get filtered
+  if (entry.source === 'skill' && !isUniversal && !hasLangOrFwMatch && score < 8) {
     score = 0;
   }
 
