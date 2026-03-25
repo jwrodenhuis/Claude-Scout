@@ -1,0 +1,5 @@
+{
+  "name": "test-sveltekit",
+  "dependencies": { "@sveltejs/kit": "^2.0.0", "svelte": "^4.0.0" },
+  "devDependencies": { "typescript": "^5.0.0", "vitest": "^1.0.0" }
+}

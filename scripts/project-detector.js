@@ -43,11 +43,13 @@ function detect(cwd) {
       // Frameworks
       if (depNames.includes('next')) { result.framework = 'next'; result.frameworks.push('next', 'react'); }
       else if (depNames.includes('react')) { result.framework = 'react'; result.frameworks.push('react'); }
+      else if (depNames.includes('@sveltejs/kit')) { result.framework = 'sveltekit'; result.frameworks.push('sveltekit', 'svelte'); }
       else if (depNames.includes('vue')) { result.framework = 'vue'; result.frameworks.push('vue'); }
       else if (depNames.includes('svelte')) { result.framework = 'svelte'; result.frameworks.push('svelte'); }
       else if (depNames.includes('express')) { result.framework = 'express'; result.frameworks.push('express'); }
       else if (depNames.includes('fastify')) { result.framework = 'fastify'; result.frameworks.push('fastify'); }
       else if (depNames.includes('hono')) { result.framework = 'hono'; result.frameworks.push('hono'); }
+      else if (depNames.includes('@angular/core')) { result.framework = 'angular'; result.frameworks.push('angular'); }
 
       // Test runner
       if (depNames.includes('vitest')) result.testRunner = 'vitest';
@@ -68,6 +70,12 @@ function detect(cwd) {
     } catch (e) { /* skip */ }
   }
 
+  // angular.json — Angular (if not already detected via package.json)
+  if (fs.existsSync(path.join(cwd, 'angular.json')) && !result.frameworks.includes('angular')) {
+    result.frameworks.push('angular');
+    result.framework = result.framework || 'angular';
+  }
+
   // pyproject.toml — Python
   const pyprojectPath = path.join(cwd, 'pyproject.toml');
   const setupPath = path.join(cwd, 'setup.py');
@@ -85,7 +93,7 @@ function detect(cwd) {
       if (lower.includes('fastapi')) { result.framework = result.framework || 'fastapi'; result.frameworks.push('fastapi'); }
       if (lower.includes('django')) { result.framework = result.framework || 'django'; result.frameworks.push('django'); }
       if (lower.includes('flask')) { result.framework = result.framework || 'flask'; result.frameworks.push('flask'); }
-      if (lower.includes('pytest')) result.testRunner = result.testRunner || 'pytest';
+      if (lower.includes('pytest') || lower.includes('[tool.pytest')) result.testRunner = result.testRunner || 'pytest';
       if (lower.includes('sqlalchemy') || lower.includes('alembic')) { result.database = result.database || 'postgresql'; result.frameworks.push('sqlalchemy'); }
       if (lower.includes('pandas') || lower.includes('numpy') || lower.includes('scikit')) result.frameworks.push('data-science');
     } catch (e) { /* skip */ }
@@ -107,6 +115,12 @@ function detect(cwd) {
   if (fs.existsSync(path.join(cwd, 'go.mod'))) {
     result.language = result.language || 'go';
     result.languages.push('go');
+    try {
+      const content = fs.readFileSync(path.join(cwd, 'go.mod'), 'utf8');
+      if (/github\.com\/gin-gonic\/gin/.test(content)) result.frameworks.push('gin');
+      if (/github\.com\/labstack\/echo/.test(content)) result.frameworks.push('echo');
+      if (/github\.com\/gofiber\/fiber/.test(content)) result.frameworks.push('fiber');
+    } catch (e) { /* skip */ }
   }
 
   // Gemfile — Ruby
@@ -143,6 +157,17 @@ function detect(cwd) {
     || fs.existsSync(path.join(cwd, '.gitlab-ci.yml'))
     || fs.existsSync(path.join(cwd, 'Jenkinsfile'))
     || fs.existsSync(path.join(cwd, '.circleci'));
+
+  // Monorepo detection
+  result.monorepo = false;
+  if (fs.existsSync(pkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.workspaces) result.monorepo = true;
+    } catch (e) { /* skip */ }
+  }
+  if (fs.existsSync(path.join(cwd, 'pnpm-workspace.yaml'))) result.monorepo = true;
+  if (fs.existsSync(path.join(cwd, 'lerna.json'))) result.monorepo = true;
 
   // Deduplicate
   result.languages = [...new Set(result.languages)];

@@ -159,4 +159,45 @@ describe('project-detector', () => {
       expect(result.projectName).toBe('js-project');
     });
   });
+
+  describe('expanded framework detection', () => {
+    test('detects Go + Gin framework from go.mod require block', () => {
+      const result = detect(fixture('go-gin-project'));
+      expect(result.language).toBe('go');
+      expect(result.frameworks).toContain('gin');
+    });
+
+    test('detects Angular from angular.json', () => {
+      const result = detect(fixture('angular-project'));
+      expect(result.frameworks).toContain('angular');
+    });
+
+    test('detects Angular from @angular/core dependency', () => {
+      const result = detect(fixture('angular-project'));
+      expect(result.language).toBe('typescript');
+    });
+
+    test('detects SvelteKit from @sveltejs/kit dependency', () => {
+      const result = detect(fixture('sveltekit-project'));
+      expect(result.framework).toBe('sveltekit');
+      expect(result.frameworks).toContain('sveltekit');
+      expect(result.frameworks).toContain('svelte');
+    });
+
+    test('detects monorepo from workspaces field', () => {
+      const result = detect(fixture('monorepo-project'));
+      expect(result.monorepo).toBe(true);
+    });
+
+    test('detects FastAPI from pyproject.toml poetry deps', () => {
+      const result = detect(fixture('python-fastapi'));
+      expect(result.language).toBe('python');
+      expect(result.frameworks).toContain('fastapi');
+    });
+
+    test('non-monorepo projects have monorepo false', () => {
+      const result = detect(fixture('js-project'));
+      expect(result.monorepo).toBe(false);
+    });
+  });
 });
