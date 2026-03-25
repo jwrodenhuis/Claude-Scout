@@ -21,9 +21,13 @@ if [ "$1" = "--uninstall" ]; then
   rm -f "$CLAUDE_DIR/scripts/build-skill-catalog.js"
   rm -f "$CLAUDE_DIR/scripts/project-detector.js"
   rm -f "$CLAUDE_DIR/scripts/manage-hooks.js"
+  rm -f "$CLAUDE_DIR/scripts/global-scout.js"
+  rm -f "$CLAUDE_DIR/scripts/online-search.js"
+  rm -f "$CLAUDE_DIR/scripts/i18n.js"
   rm -f "$CLAUDE_DIR/hooks/scout-session-start.js"
   rm -f "$CLAUDE_DIR/hooks/advisor-post-tool-use.js"
   rm -rf "$CLAUDE_DIR/skills/session-scout"
+  rm -rf "$CLAUDE_DIR/skills/scout:global"
   echo "Claude Scout uninstalled."
   exit 0
 fi
@@ -32,7 +36,7 @@ fi
 if [ "$1" = "--check" ]; then
   echo "Checking Claude Scout installation..."
   ERRORS=0
-  for f in scripts/build-skill-catalog.js scripts/project-detector.js scripts/manage-hooks.js hooks/scout-session-start.js hooks/advisor-post-tool-use.js skills/session-scout/SKILL.md; do
+  for f in scripts/build-skill-catalog.js scripts/project-detector.js scripts/manage-hooks.js scripts/global-scout.js scripts/online-search.js scripts/i18n.js hooks/scout-session-start.js hooks/advisor-post-tool-use.js skills/session-scout/SKILL.md skills/scout:global/SKILL.md; do
     if [ -f "$CLAUDE_DIR/$f" ]; then
       echo "  OK: $f"
     else
@@ -57,11 +61,15 @@ mkdir -p "$CLAUDE_DIR/skills/session-scout"
 mkdir -p "$CLAUDE_DIR/skills/scout:eval"
 mkdir -p "$CLAUDE_DIR/skills/scout:bootstrap"
 mkdir -p "$CLAUDE_DIR/skills/scout:help"
+mkdir -p "$CLAUDE_DIR/skills/scout:global"
 
 # Copy files
 cp "$SCRIPT_DIR/scripts/build-skill-catalog.js" "$CLAUDE_DIR/scripts/"
 cp "$SCRIPT_DIR/scripts/project-detector.js" "$CLAUDE_DIR/scripts/"
 cp "$SCRIPT_DIR/scripts/manage-hooks.js" "$CLAUDE_DIR/scripts/"
+cp "$SCRIPT_DIR/scripts/global-scout.js" "$CLAUDE_DIR/scripts/"
+cp "$SCRIPT_DIR/scripts/online-search.js" "$CLAUDE_DIR/scripts/"
+cp "$SCRIPT_DIR/scripts/i18n.js" "$CLAUDE_DIR/scripts/"
 cp "$SCRIPT_DIR/hooks/scout-session-start.js" "$CLAUDE_DIR/hooks/"
 cp "$SCRIPT_DIR/hooks/advisor-post-tool-use.js" "$CLAUDE_DIR/hooks/"
 cp "$SCRIPT_DIR/skills/session-scout/SKILL.md" "$CLAUDE_DIR/skills/session-scout/"
@@ -69,6 +77,7 @@ cp "$SCRIPT_DIR/skills/session-scout/GUIDE.md" "$CLAUDE_DIR/skills/session-scout
 cp "$SCRIPT_DIR/skills/scout:eval/SKILL.md" "$CLAUDE_DIR/skills/scout:eval/"
 cp "$SCRIPT_DIR/skills/scout:bootstrap/SKILL.md" "$CLAUDE_DIR/skills/scout:bootstrap/"
 cp "$SCRIPT_DIR/skills/scout:help/SKILL.md" "$CLAUDE_DIR/skills/scout:help/"
+cp "$SCRIPT_DIR/skills/scout:global/SKILL.md" "$CLAUDE_DIR/skills/scout:global/"
 
 echo "Files copied to $CLAUDE_DIR"
 
@@ -86,6 +95,7 @@ echo "Installation complete! Restart Claude Code to activate."
 echo ""
 echo "Commands available after restart:"
 echo "  /scout           — Scan project and show toolkit recommendations"
+echo "  /scout:global    — Scan all projects and write globally-relevant tools to ~/.claude/CLAUDE.md"
 echo "  /scout:eval      — Mid-session evaluation"
 echo "  /scout:bootstrap — Deep analysis for new projects"
 echo "  /scout:help      — Show user guide"
