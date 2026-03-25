@@ -1,0 +1,16 @@
+{
+  "name": "claude-scout",
+  "version": "0.1.0",
+  "description": "Intelligent toolkit advisor for Claude Code",
+  "type": "commonjs",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build-catalog": "node scripts/build-skill-catalog.js",
+    "detect": "node scripts/project-detector.js"
+  },
+  "devDependencies": {
+    "vitest": "^3.1.0"
+  },
+  "license": "MIT"
+}
