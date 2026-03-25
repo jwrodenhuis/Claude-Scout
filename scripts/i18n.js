@@ -55,6 +55,10 @@ const STRINGS = {
     triggerDatabase: 'for database queries or schema changes',
     triggerDebug: 'when resolving bugs',
     triggerDefault: 'use when relevant',
+
+    // online-search: available online section
+    onlineTools: 'Available online (not yet installed):',
+    install: 'Install:',
   },
 
   nl: {
@@ -104,6 +108,10 @@ const STRINGS = {
     triggerDatabase: 'bij database queries of schema wijzigingen',
     triggerDebug: 'bij het oplossen van bugs',
     triggerDefault: 'gebruik wanneer relevant',
+
+    // online-search: available online section
+    onlineTools: 'Online beschikbaar (nog niet geïnstalleerd):',
+    install: 'Installeer:',
   },
 
   de: {
@@ -148,6 +156,10 @@ const STRINGS = {
     triggerDatabase: 'bei Datenbankabfragen oder Schemaänderungen',
     triggerDebug: 'beim Beheben von Bugs',
     triggerDefault: 'verwenden wenn relevant',
+
+    // online-search: available online section
+    onlineTools: 'Online verfügbar (noch nicht installiert):',
+    install: 'Installieren:',
   },
 
   fr: {
@@ -192,6 +204,10 @@ const STRINGS = {
     triggerDatabase: 'pour les requêtes de base de données ou modifications de schéma',
     triggerDebug: 'lors de la résolution de bugs',
     triggerDefault: 'utiliser quand pertinent',
+
+    // online-search: available online section
+    onlineTools: 'Disponible en ligne (pas encore installé) :',
+    install: 'Installer :',
   },
 
   es: {
@@ -236,6 +252,10 @@ const STRINGS = {
     triggerDatabase: 'para consultas de base de datos o cambios de esquema',
     triggerDebug: 'al resolver bugs',
     triggerDefault: 'usar cuando sea relevante',
+
+    // online-search: available online section
+    onlineTools: 'Disponible en línea (no instalado aún):',
+    install: 'Instalar:',
   },
 
   zh: {
@@ -280,6 +300,10 @@ const STRINGS = {
     triggerDatabase: '用于数据库查询或 schema 更改',
     triggerDebug: '解决 Bug 时',
     triggerDefault: '相关时使用',
+
+    // online-search: available online section
+    onlineTools: '在线可用（尚未安装）：',
+    install: '安装：',
   },
 };
 

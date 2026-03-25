@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 const { getStrings } = require(path.join(__dirname, '..', 'scripts', 'i18n'));
+const { getCachedResults, isCacheStale, formatOnlineSection, TTL_SESSION } = require(path.join(__dirname, '..', 'scripts', 'online-search'));
 
 const CLAUDE_DIR = path.join(require('os').homedir(), '.claude');
 const INDEX_PATH = path.join(CLAUDE_DIR, 'skills', '.index.json');
@@ -157,7 +158,7 @@ function scoreSkill(entry, project, profile) {
   return score;
 }
 
-function formatBriefing(project, recommendations, profile) {
+function formatBriefing(project, recommendations, profile, onlineResults) {
   const lines = [];
   lines.push(`Toolkit Scout — ${project.language ? project.language.charAt(0).toUpperCase() + project.language.slice(1) : 'Unknown'}${project.framework ? '/' + project.framework.charAt(0).toUpperCase() + project.framework.slice(1) : ''} project (${project.projectName})`);
   lines.push('━'.repeat(60));
@@ -197,6 +198,15 @@ function formatBriefing(project, recommendations, profile) {
       lines.push(` ${i + 1}. ${o.name} (${o.source}) — ${o.summary || o.description}`);
     });
     lines.push('');
+  }
+
+  // Online section (cached results from previous background fetch)
+  if (onlineResults && onlineResults.length > 0) {
+    const onlineSection = formatOnlineSection(onlineResults, str);
+    if (onlineSection) {
+      lines.push(onlineSection);
+      lines.push('');
+    }
   }
 
   lines.push(str.scoutTip);
@@ -376,8 +386,23 @@ if (require.main === module) {
   // Apply recommendations to CLAUDE.md
   applyRecommendations(cwd, scored, project);
 
+  // Load cached online results (from previous background fetch, if any)
+  let onlineResults = [];
+  try {
+    onlineResults = getCachedResults(project);
+  } catch (e) { /* online search unavailable */ }
+
+  // Trigger background online search if cache is stale (non-blocking)
+  if (isCacheStale(project, TTL_SESSION)) {
+    try {
+      const { execFile } = require('child_process');
+      const searchScript = path.join(__dirname, '..', 'scripts', 'online-search.js');
+      execFile(process.execPath, [searchScript, '--project-dir', cwd], { timeout: 30000 }, () => {});
+    } catch (e) { /* background fetch failed, ignore */ }
+  }
+
   // Emit briefing
-  const briefing = formatBriefing(project, scored, profile);
+  const briefing = formatBriefing(project, scored, profile, onlineResults);
   console.log(JSON.stringify({
     hookSpecificOutput: {
       hookEventName: 'SessionStart',
