@@ -104,21 +104,30 @@ function readStdin() {
   }
 }
 
-function getStateFile(sessionId) {
+function getStateFile(sessionId, cwd) {
+  // Prefer project .claude/ dir, fallback to /tmp/
+  if (cwd) {
+    const projectDir = path.join(cwd, '.claude');
+    try {
+      if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir, { recursive: true });
+      fs.accessSync(projectDir, fs.constants.W_OK);
+      return path.join(projectDir, 'scout-session-state.json');
+    } catch (e) { /* fall through to /tmp/ */ }
+  }
   return path.join('/tmp', `claude-advisor-${sessionId || 'default'}.json`);
 }
 
-function loadState(sessionId) {
+function loadState(sessionId, cwd) {
   try {
-    return JSON.parse(fs.readFileSync(getStateFile(sessionId), 'utf8'));
+    return JSON.parse(fs.readFileSync(getStateFile(sessionId, cwd), 'utf8'));
   } catch (e) {
     return { lastSuggestion: 0, suggestedSkills: {}, actions: [] };
   }
 }
 
-function saveState(sessionId, state) {
+function saveState(sessionId, cwd, state) {
   try {
-    fs.writeFileSync(getStateFile(sessionId), JSON.stringify(state));
+    fs.writeFileSync(getStateFile(sessionId, cwd), JSON.stringify(state));
   } catch (e) { /* skip */ }
 }
 
@@ -236,7 +245,7 @@ if (require.main === module) {
 const input = readStdin();
 const sessionId = input?.session_id || 'default';
 const cwd = input?.cwd || input?.workspace?.current_dir || process.cwd();
-const state = loadState(sessionId);
+const state = loadState(sessionId, cwd);
 const now = Date.now();
 
 // Record action for eval tracking
@@ -256,7 +265,7 @@ if (input.tool_name === 'Skill' && input.tool_input?.skill) {
 
 // Debounce: max 1 suggestion per 2 minutes
 if (now - (state.lastSuggestion || 0) < 2 * 60 * 1000) {
-  saveState(sessionId, state);
+  saveState(sessionId, cwd, state);
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
@@ -264,7 +273,7 @@ if (now - (state.lastSuggestion || 0) < 2 * 60 * 1000) {
 // Analyze action
 const matches = analyzeAction(input);
 if (matches.length === 0) {
-  saveState(sessionId, state);
+  saveState(sessionId, cwd, state);
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
@@ -275,7 +284,7 @@ const validMatches = matches.filter(m => {
   return now - lastSuggested >= 10 * 60 * 1000;
 });
 if (validMatches.length === 0) {
-  saveState(sessionId, state);
+  saveState(sessionId, cwd, state);
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PostToolUse' } }));
   process.exit(0);
 }
@@ -289,7 +298,7 @@ state.suggestedSkills = state.suggestedSkills || {};
 for (const m of validMatches) {
   state.suggestedSkills[m.id] = now;
 }
-saveState(sessionId, state);
+saveState(sessionId, cwd, state);
 
 console.log(JSON.stringify({
   hookSpecificOutput: {

@@ -275,7 +275,8 @@ function scanHooks() {
 
 function scanMCPServers() {
   const entries = [];
-  // settings.local.json
+
+  // settings.local.json — enabled MCP servers
   try {
     const local = JSON.parse(fs.readFileSync(path.join(CLAUDE_DIR, 'settings.local.json'), 'utf8'));
     for (const server of (local.enabledMcpjsonServers || [])) {
@@ -289,11 +290,37 @@ function scanMCPServers() {
         languages: [],
         frameworks: [],
         domains: [],
+        tier: 'universal',
       });
     }
   } catch (e) { /* skip */ }
 
-  // Also check for .mcp.json in common project locations
+  // Parse .mcp.json for tool metadata
+  const mcpJsonPaths = [
+    path.join(CLAUDE_DIR, '.mcp.json'),
+    path.join(process.cwd(), '.mcp.json'),
+  ];
+  for (const mcpPath of mcpJsonPaths) {
+    try {
+      if (!fs.existsSync(mcpPath)) continue;
+      const mcpConfig = JSON.parse(fs.readFileSync(mcpPath, 'utf8'));
+      const servers = mcpConfig.mcpServers || {};
+      for (const [name, config] of Object.entries(servers)) {
+        if (entries.some(e => e.name === name)) continue;
+        const tagInfo = inferTags(`${name} ${config.command || ''} ${(config.args || []).join(' ')}`);
+        entries.push({
+          name,
+          source: 'mcp',
+          description: `MCP server: ${name}`,
+          summary: `MCP server ${name} (${config.command || 'unknown'})`,
+          invoke: `mcp:${name}`,
+          ...tagInfo,
+        });
+      }
+    } catch (e) { process.stderr.write(`Warning: cannot read ${mcpPath}: ${e.message}\n`); }
+  }
+
+  // Plugins from settings.json
   try {
     const settings = JSON.parse(fs.readFileSync(path.join(CLAUDE_DIR, 'settings.json'), 'utf8'));
     const plugins = settings.enabledPlugins || {};
@@ -309,6 +336,7 @@ function scanMCPServers() {
           languages: [],
           frameworks: [],
           domains: [],
+          tier: 'universal',
         });
       }
     }
